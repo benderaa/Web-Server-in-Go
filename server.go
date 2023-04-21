@@ -10,28 +10,34 @@ import (
 )
 
 var counter int
-var mutex = &sync.Mutex{}
+var rwMutex = &sync.RWMutex{}
 
 func echoString(w http.ResponseWriter, r *http.Request) {
     fmt.Fprintf(w, "hello")
 }
 
 func incrementCounter(w http.ResponseWriter, r *http.Request) {
-    mutex.Lock()
+    rwMutex.Lock()
     counter++
     fmt.Fprintf(w, strconv.Itoa(counter))
-    mutex.Unlock()
+    rwMutex.Unlock()
+}
+
+func readCounter(w http.ResponseWriter, r *http.Request) {
+    rwMutex.RLock()
+    defer rwMutex.RUnlock()
+    fmt.Fprintf(w, strconv.Itoa(counter))
 }
 
 func main() {
-    http.HandleFunc("/", echoString)
+    mux := http.NewServeMux()
 
-    http.HandleFunc("/increment", incrementCounter)
-
-    http.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
+    mux.HandleFunc("/", echoString)
+    mux.HandleFunc("/increment", incrementCounter)
+    mux.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, "Hi")
     })
+    mux.HandleFunc("/counter", readCounter)
 
-    log.Fatal(http.ListenAndServe(":8081", nil))
-
+    log.Fatal(http.ListenAndServe(":8081", mux))
 }
