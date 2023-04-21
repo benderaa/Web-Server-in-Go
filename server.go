@@ -78,8 +78,46 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSecureEndpoint(w http.ResponseWriter, r *http.Request) {
-	// Add security measures here
-	// Example: Authentication, Authorization, Input validation, etc.
+	// Basic Authentication
+	username := "user"
+	password := "password"
+
+	// Get the Authorization header from the request
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, "Unauthorized")
+		return
+	}
+
+	// Check if the Authorization header is valid
+	auth := strings.SplitN(authHeader, " ", 2)
+	if len(auth) != 2 || auth[0] != "Basic" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Bad Request")
+		return
+	}
+
+	// Decode the base64-encoded credentials
+	decoded, err := base64.StdEncoding.DecodeString(auth[1])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Bad Request")
+		return
+	}
+
+	// Convert the decoded credentials to string
+	credentials := string(decoded)
+
+	// Compare the credentials with the expected username and password
+	if credentials != fmt.Sprintf("%s:%s", username, password) {
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprintf(w, "Unauthorized")
+		return
+	}
+
+	// If authentication is successful, proceed with handling the request
 	fmt.Fprintf(w, "This is a secure endpoint.")
 }
 
